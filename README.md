@@ -5,3 +5,6 @@ This is a course project, aiming at exploring whether we can predict SNP mutatio
 - GTEx portal:
     - Raw read counts
     - VCF
+    - eQTLs
+
+- SNP X whole bloods sample: from Yanlong, cross compare

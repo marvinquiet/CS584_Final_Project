@@ -1,13 +1,15 @@
 import os
 import gzip
-
-# === data directories
-vcf_file = "/compbioscratch2/yhua295/dbGap-17031/PhenoGenotypeFiles/RootStudyConsentSet_phs000424.GTEx.v7.p2.c1.GRU/GenotypeFiles/phg000830.v1.GTEx_WGS.genotype-calls-vcf.c1/GTEx_Analysis_2016-01-15_v7_WholeGenomeSeq_635Ind_PASS_AB02_GQ20_HETX_MISS15_PLINKQC.vcf.gz"
-eQTL_lung_sig = "/compbioscratch2/wma36/projects/cs584_ge_snp/data/GTEx_Analysis_v7_eQTL/Lung.v7.signif_variant_gene_pairs.txt.gz"
-attributes = " /compbioscratch2/yhua295/dbGap-17031/PhenoGenotypeFiles/RootStudyConsentSet_phs000424.GTEx.v7.p2.c1.GRU/PhenotypeFiles/phs000424.v7.pht002743.v7.p2.c1.GTEx_Sample_Attributes.GRU.txt.gz"
+import yaml
 
 import pandas as pd
 import numpy as np
+
+# === my packages
+import data
+
+
+# === data directories
 
 ''' === sort lung tissue variants
 eQTL_lung_sig_dict = {}
