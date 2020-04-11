@@ -1,2 +1,3 @@
 # do not upload data
 data/
+*.log

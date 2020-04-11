@@ -9,9 +9,7 @@ import numpy as np
 import data
 
 
-# === data directories
-
-''' === sort lung tissue variants
+#  === sort lung tissue variants
 eQTL_lung_sig_dict = {}
 # === get top 100 eQTLs
 with gzip.open(eQTL_lung_sig, 'rb') as f:
@@ -35,7 +33,6 @@ eQTL_lung_sig_df = eQTL_lung_sig_df.sort_values(by=['pval_nominal'])
 
 # === write to file
 eQTL_lung_sig_df.to_csv('eQTL_lung_asc.csv', index=False)
-'''
 
 eQTL_lung_sig_df = pd.read_csv('eQTL_lung_asc.csv')
 eQTLs = list(eQTL_lung_sig_df['variant_id'][:1000]) # top 1000 eQTLs
