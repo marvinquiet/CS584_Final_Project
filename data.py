@@ -16,4 +16,4 @@ with open(CONFIG, 'r') as fopen:
 VCF = os.path.join(config_data['ori_prefix'], config_data['ori_files']['vcfs'])
 ATTRIBUTES = os.path.join(config_data['ori_prefix'], config_data['ori_files']['attributes'])
 eQTL_DIR = os.path.join(config_data['processed_prefix'], config_data['processed_files']['eQTLs'])
-
+RC_DIR = os.path.join(config_data['ori_prefix'], config_data['ori_files']['read_counts'])
