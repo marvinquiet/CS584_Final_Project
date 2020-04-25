@@ -33,8 +33,8 @@ def transform_data(rc_data_file, snps_labels_file):
     snps_data_filtered = snps_data.loc[rc_data_rownames, :]
     return rc_data_trans, snps_data_filtered
 
-def evaluation_metrics(y_true, y_pred):
-    print("\n\n ==== Evaluation Metrics ==== ")
+def evaluation_metrics(snp, y_true, y_pred):
+    print("\n\n ==== Evaluation Metrics for {} ==== ".format(snp))
     from sklearn.metrics import roc_auc_score
     auc = roc_auc_score(y_true, y_pred)
     print("AUC score:", auc)
@@ -43,8 +43,9 @@ def evaluation_metrics(y_true, y_pred):
 def model(rc_dat, snps_label):
     from sklearn.model_selection import KFold
     kf = KFold(n_splits=10) # 5-fold 
+
     for train_index, test_index in kf.split(rc_dat):
-        X_train, X_test = rc_dat.iloc[train_index, ], rc_dat.iloc[test_index, ]
+        X_train, X_test = rc_dat.iloc[train_index, ].to_numpy(), rc_dat.iloc[test_index, ].to_numpy()
         y_train, y_test = snps_label.iloc[train_index, ], snps_label.iloc[test_index, ]
 
         # data normalization
@@ -53,17 +54,17 @@ def model(rc_dat, snps_label):
         X_scaled_std = X_train.std(axis=0)
         X_train_scaled = preprocessing.scale(X_train)
         X_test_scaled = (X_test-X_scaled_mean)/X_scaled_std
-        print(X_scaled_std)
-        print(X_test_scaled)
+        # print(X_scaled_std)
+        # print(X_test_scaled)
 
         for snp in y_train.columns:
-            y_snp_train = y_train.loc[:, snp]
-            y_snp_test = y_test.loc[:, snp]
+            y_snp_train = y_train.loc[:, snp].to_numpy()
+            y_snp_test = y_test.loc[:, snp].to_numpy()
 
             # model result
             lr = logistic_regression(X_train_scaled, y_snp_train)
-            y_lr_pred = lr.predict_proba(X_test_scaled)
-            evaluation_metrics(y_snp_test, y_lr_pred)
+            y_lr_pred = lr.predict_proba(X_test_scaled)[:, 1]
+            evaluation_metrics(snp, y_snp_test, y_lr_pred)
 
 def logistic_regression(X, y):
     from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
