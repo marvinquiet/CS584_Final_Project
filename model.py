@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from sklearn import preprocessing
+import yaml
 
 # === my own package
 import data
@@ -33,17 +34,23 @@ def transform_data(rc_data_file, snps_labels_file):
     snps_data_filtered = snps_data.loc[rc_data_rownames, :]
     return rc_data_trans, snps_data_filtered
 
-def evaluation_metrics(snp, y_true, y_pred):
-    print("\n\n ==== Evaluation Metrics for {} ==== ".format(snp))
-    from sklearn.metrics import roc_auc_score
-
+def evaluation_metrics(snp, y_true, y_pred_prob, y_pred):
+    # print("\n\n ==== Evaluation Metrics for {} ==== ".format(snp))
+    from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
     eval_dict = {}
     # === AUC score
-    auc = roc_auc_score(y_true, y_pred)
-    # print("AUC score:", auc)
-    eval_dict['AUC'] = auc
+    if y_pred_prob is not None:
+        auc = roc_auc_score(y_true, y_pred_prob)
+        # print("AUC score:", auc)
+        eval_dict['AUC'] = auc
 
+    # === F1 score
+    f1 = f1_score(y_true, y_pred)
+    eval_dict['F1'] = f1
 
+    # === Accuracy score
+    acc = accuracy_score(y_true, y_pred)
+    eval_dict['Acc'] = acc
     return eval_dict
 
 
@@ -69,27 +76,58 @@ def model(rc_dat, snps_label):
             y_snp_train = y_train.loc[:, snp].to_numpy()
             y_snp_test = y_test.loc[:, snp].to_numpy()
 
-            # model result
-            lr = logistic_regression(X_train_scaled, y_snp_train)
-            y_lr_pred = lr.predict_proba(X_test_scaled)[:, 1]
             if snp not in snp_result:
-                snp_result[snp] = []
-            snp_result[snp].append(evaluation_metrics(snp, y_snp_test, y_lr_pred))
-            print(snp_result)
+                snp_result[snp] = {}
+                snp_result[snp]['LR'] = []
+                snp_result[snp]['RF'] = []
+                snp_result[snp]['SVM'] = []
+                snp_result[snp]['MLP'] = []
+                snp_result[snp]['CNN'] = []
 
-def logistic_regression(X, y):
+            # LR model result
+            y_lr_pred_prob, y_lr_pred = logistic_regression(X_train_scaled, y_snp_train, X_test_scaled)
+            snp_result[snp]['LR'].append(evaluation_metrics(snp, y_snp_test, y_lr_pred_prob, y_lr_pred))
+
+            # RF model result
+            y_rf_pred_prob, y_rf_pred = random_forest(X_train_scaled, y_snp_train, X_test_scaled)
+            snp_result[snp]['RF'].append(evaluation_metrics(snp, y_snp_test, y_rf_pred_prob, y_rf_pred))
+
+            # SVM model result
+            y_svm_pred = svm(X_train_scaled, y_snp_train, X_test_scaled)
+            snp_result[snp]['SVM'].append(evaluation_metrics(snp, y_snp_test, None, y_svm_pred))
+
+            print(snp_result)
+    with open('result.yaml', 'w') as fout:
+        yaml.dump(snp_result, fout, default_flow_style=True)
+
+
+def svm(X_train, y_train, X_test):
+    from sklearn.svm import SVC
+    clf = SVC(gamma='auto', random_state=2020).fit(X_train, y_train)
+    return clf.predict(X_test)
+
+
+def random_forest(X_train, y_train, X_test):
+    from sklearn.ensemble import RandomForestClassifier
+    clf = RandomForestClassifier(n_estimators=100, random_state=2020).fit(X_train, y_train)
+    return clf.predict_proba(X_test)[:, 1], clf.predict(X_test)
+
+def logistic_regression(X_train, y_train, X_test):
     from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
     # clf = LogisticRegressionCV(max_iter=5000, cv=5, random_state=2020, solver='saga',
     #         penalty='elasticnet', l1_ratios=[.1, .5, .7, .9, .95, .99, 1]).fit(X, y)
 
     clf = LogisticRegression(penalty='elasticnet', l1_ratio=0.5,
-            max_iter=5000, random_state=2020, solver='saga').fit(X, y)
+            max_iter=5000, random_state=2020, solver='saga').fit(X_train, y_train)
+    return clf.predict_proba(X_test)[:, 1], clf.predict(X_test)
 
-    return clf
+def mlp(X_train, y_train, X_test):
+    import mlp # import my own MLP package
+
+    # === do train
 
 
-def mlp(X, y):
-    pass
+    # === do reference
 
 
 if __name__ == '__main__':
