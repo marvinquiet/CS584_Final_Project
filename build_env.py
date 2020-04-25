@@ -81,5 +81,6 @@ if __name__ == '__main__':
     genes = get_genes(gene_file)
     
     print("filter gene read counts by genes and sample IDs...")
-    filtered_rc_file = os.path.join(data.config_data['processed_prefix'], 'chr22/chr22_genes_samples_rc.tsv')
-    get_rc_matrix(sample_ids, genes, filtered_rc_file)
+    # filtered_rc_file = os.path.join(data.config_data['processed_prefix'], 'chr22/chr22_genes_samples_rc.tsv')
+    filtered_rc_file = os.path.join(data.config_data['processed_prefix'], 'chr22/chr22_all_genes_samples_rc.tsv')
+    get_rc_matrix(sample_ids, None, filtered_rc_file)

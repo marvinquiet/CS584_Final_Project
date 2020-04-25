@@ -5,4 +5,7 @@
 #$ -e err.log
 
 source ~/.bashrc
-python build_env.py
+
+conda activate phege_proj
+# python build_env.py
+python model.py
