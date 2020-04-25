@@ -36,14 +36,22 @@ def transform_data(rc_data_file, snps_labels_file):
 def evaluation_metrics(snp, y_true, y_pred):
     print("\n\n ==== Evaluation Metrics for {} ==== ".format(snp))
     from sklearn.metrics import roc_auc_score
+
+    eval_dict = {}
+    # === AUC score
     auc = roc_auc_score(y_true, y_pred)
-    print("AUC score:", auc)
+    # print("AUC score:", auc)
+    eval_dict['AUC'] = auc
+
+
+    return eval_dict
 
 
 def model(rc_dat, snps_label):
     from sklearn.model_selection import KFold
     kf = KFold(n_splits=10) # 5-fold 
 
+    snp_result = {}
     for train_index, test_index in kf.split(rc_dat):
         X_train, X_test = rc_dat.iloc[train_index, ].to_numpy(), rc_dat.iloc[test_index, ].to_numpy()
         y_train, y_test = snps_label.iloc[train_index, ], snps_label.iloc[test_index, ]
@@ -64,15 +72,18 @@ def model(rc_dat, snps_label):
             # model result
             lr = logistic_regression(X_train_scaled, y_snp_train)
             y_lr_pred = lr.predict_proba(X_test_scaled)[:, 1]
-            evaluation_metrics(snp, y_snp_test, y_lr_pred)
+            if snp not in snp_result:
+                snp_result[snp] = []
+            snp_result[snp].append(evaluation_metrics(snp, y_snp_test, y_lr_pred))
+            print(snp_result)
 
 def logistic_regression(X, y):
     from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-    clf = LogisticRegressionCV(max_iter=5000, cv=5, random_state=2020, solver='saga',
-            penalty='elasticnet', l1_ratios=[.1, .5, .7, .9, .95, .99, 1]).fit(X, y)
+    # clf = LogisticRegressionCV(max_iter=5000, cv=5, random_state=2020, solver='saga',
+    #         penalty='elasticnet', l1_ratios=[.1, .5, .7, .9, .95, .99, 1]).fit(X, y)
 
-    # clf = LogisticRegression(penalty='elasticnet', l1_ratio=0.5,
-    #         max_iter=5000, random_state=2020, solver='saga').fit(X, y)
+    clf = LogisticRegression(penalty='elasticnet', l1_ratio=0.5,
+            max_iter=5000, random_state=2020, solver='saga').fit(X, y)
 
     return clf
 
