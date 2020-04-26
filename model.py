@@ -30,6 +30,7 @@ def transform_data(rc_data_file, snps_labels_file):
     rc_data_filtered = rc_data.iloc[:, rc_samples_index] # select certain samples
     rc_data_trans = rc_data_filtered.set_index('Name').T # change into normal dataset
     rc_data_trans = rc_data_trans.loc[:, (rc_data_trans != 0).any(axis=0)] # remove 0s
+    rc_data_trans = rc_data_trans.loc[:, rc_data_trans.std(axis=0) > 0.1] # remove std < 0.1
 
     rc_data_rownames = ['-'.join(_.split('-')[:2]) for _ in list(rc_data_trans.index)]
     snps_data = snps_data.set_index('NEW_SAMPID')
@@ -64,7 +65,7 @@ def evaluation_metrics(snp, y_true, y_pred_prob, y_pred):
 
 def model(rc_dat, snps_label):
     from sklearn.model_selection import KFold
-    kf = KFold(n_splits=10) # 5-fold 
+    kf = KFold(n_splits=5) # 5-fold 
 
     snp_result = {}
     for train_index, test_index in kf.split(rc_dat):
@@ -76,10 +77,13 @@ def model(rc_dat, snps_label):
         print("\n\n=== Data Normalization starting at", now.strftime("%H:%M:%S"))
         X_scaled_mean = X_train.mean(axis=0)
         X_scaled_std = X_train.std(axis=0)
-        X_train_scaled = preprocessing.scale(X_train)
+        X_train_scaled = (X_train-X_scaled_mean)/X_scaled_std
         X_test_scaled = (X_test-X_scaled_mean)/X_scaled_std
+
         # print(X_scaled_std)
         # print(X_test_scaled)
+        # print("Any NAs in train?", sum(np.isnan(X_train_scaled)))
+        # print("Any NAs in test?", sum(np.isnan(X_test_scaled)))
 
         for snp in y_train.columns:
             y_snp_train = y_train.loc[:, snp].to_numpy()
