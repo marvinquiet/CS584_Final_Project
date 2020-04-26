@@ -1,8 +1,10 @@
-import os
+import os, time
 import pandas as pd
 import numpy as np
 from sklearn import preprocessing
 import yaml
+import random
+from datetime import datetime
 
 # === my own package
 import data
@@ -32,6 +34,12 @@ def transform_data(rc_data_file, snps_labels_file):
     rc_data_rownames = ['-'.join(_.split('-')[:2]) for _ in list(rc_data_trans.index)]
     snps_data = snps_data.set_index('NEW_SAMPID')
     snps_data_filtered = snps_data.loc[rc_data_rownames, :]
+
+    # random select 100 SNPs
+    random.seed(2020)
+    random_indexes = random.sample(range(snps_data_filtered.shape[1]), 100)
+    snps_data_filtered = snps_data_filtered.iloc[:, random_indexes]
+
     return rc_data_trans, snps_data_filtered
 
 def evaluation_metrics(snp, y_true, y_pred_prob, y_pred):
@@ -62,9 +70,10 @@ def model(rc_dat, snps_label):
     for train_index, test_index in kf.split(rc_dat):
         X_train, X_test = rc_dat.iloc[train_index, ].to_numpy(), rc_dat.iloc[test_index, ].to_numpy()
         y_train, y_test = snps_label.iloc[train_index, ], snps_label.iloc[test_index, ]
-
+        
+        now = datetime.now()
         # data normalization
-        print("\n\n=== Data Normalization... ")
+        print("\n\n=== Data Normalization starting at", now.strftime("%H:%M:%S"))
         X_scaled_mean = X_train.mean(axis=0)
         X_scaled_std = X_train.std(axis=0)
         X_train_scaled = preprocessing.scale(X_train)
@@ -96,7 +105,7 @@ def model(rc_dat, snps_label):
             y_svm_pred = svm(X_train_scaled, y_snp_train, X_test_scaled)
             snp_result[snp]['SVM'].append(evaluation_metrics(snp, y_snp_test, None, y_svm_pred))
 
-            print(snp_result)
+        print(snp_result)
     with open('result.yaml', 'w') as fout:
         yaml.dump(snp_result, fout, default_flow_style=True)
 
@@ -135,5 +144,7 @@ if __name__ == '__main__':
     snps_labels_file = os.path.join(data.config_data['processed_prefix'], 'chr22/chr22_SNP.csv')
 
     rc_data_filtered, snps_data_filtered = transform_data(rc_data_file, snps_labels_file)
+    print(rc_data_filtered.shape)
+    print(snps_data_filtered.shape)
     model(rc_data_filtered, snps_data_filtered)
 
