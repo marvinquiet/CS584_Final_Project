@@ -30,6 +30,7 @@ def transform_data(rc_data_file, snps_labels_file):
     rc_data_filtered = rc_data.iloc[:, rc_samples_index] # select certain samples
     rc_data_trans = rc_data_filtered.set_index('Name').T # change into normal dataset
     rc_data_trans = rc_data_trans.loc[:, (rc_data_trans != 0).any(axis=0)] # remove 0s
+    rc_data_trans = rc_data_trans.loc[:, rc_data_trans.std(axis=0) > 0.1] # remove std < 0.1
 
     rc_data_rownames = ['-'.join(_.split('-')[:2]) for _ in list(rc_data_trans.index)]
     snps_data = snps_data.set_index('NEW_SAMPID')
@@ -39,6 +40,8 @@ def transform_data(rc_data_file, snps_labels_file):
     random.seed(2020)
     random_indexes = random.sample(range(snps_data_filtered.shape[1]), 100)
     snps_data_filtered = snps_data_filtered.iloc[:, random_indexes]
+    for snp in snps_data_filtered.columns:
+        snps_data_filtered[snp] = snps_data_filtered[snp].astype(int)
 
     return rc_data_trans, snps_data_filtered
 
@@ -87,12 +90,13 @@ def model(rc_dat, snps_label):
 
             if snp not in snp_result:
                 snp_result[snp] = {}
-                snp_result[snp]['LR'] = []
-                snp_result[snp]['RF'] = []
-                snp_result[snp]['SVM'] = []
+                # snp_result[snp]['LR'] = []
+                # snp_result[snp]['RF'] = []
+                # snp_result[snp]['SVM'] = []
                 snp_result[snp]['MLP'] = []
                 snp_result[snp]['CNN'] = []
 
+            '''
             # LR model result
             y_lr_pred_prob, y_lr_pred = logistic_regression(X_train_scaled, y_snp_train, X_test_scaled)
             snp_result[snp]['LR'].append(evaluation_metrics(snp, y_snp_test, y_lr_pred_prob, y_lr_pred))
@@ -104,17 +108,16 @@ def model(rc_dat, snps_label):
             # SVM model result
             y_svm_pred = svm(X_train_scaled, y_snp_train, X_test_scaled)
             snp_result[snp]['SVM'].append(evaluation_metrics(snp, y_snp_test, None, y_svm_pred))
+            '''
 
+            y_mlp_pred_prob, y_mlp_pred = mlp(snp, X_train_scaled, y_snp_train, X_test_scaled)
+            snp_result[snp]['MLP'].append(evaluation_metrics(snp, y_snp_test, y_mlp_pred_prob, y_mlp_pred))
         print(snp_result)
-    with open('result.yaml', 'w') as fout:
-        yaml.dump(snp_result, fout, default_flow_style=True)
-
 
 def svm(X_train, y_train, X_test):
     from sklearn.svm import SVC
     clf = SVC(gamma='auto', random_state=2020).fit(X_train, y_train)
     return clf.predict(X_test)
-
 
 def random_forest(X_train, y_train, X_test):
     from sklearn.ensemble import RandomForestClassifier
@@ -130,14 +133,12 @@ def logistic_regression(X_train, y_train, X_test):
             max_iter=5000, random_state=2020, solver='saga').fit(X_train, y_train)
     return clf.predict_proba(X_test)[:, 1], clf.predict(X_test)
 
-def mlp(X_train, y_train, X_test):
+def mlp(snp, X_train, y_train, X_test):
     import mlp # import my own MLP package
-
     # === do train
-
-
+    mlp_train = mlp.do_train(snp, X_train, y_train)
     # === do reference
-
+    return mlp.do_infer(mlp_train, X_test)
 
 if __name__ == '__main__':
     rc_data_file = os.path.join(data.config_data['processed_prefix'], 'chr22/chr22_genes_samples_rc.tsv')
