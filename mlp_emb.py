@@ -28,22 +28,17 @@ def transform_data(rc_data_file, snps_labels_file, embeddings):
     # filter gene with embeddings genes
     embedding_genes_indexes = [i for i in range(len(rc_data_filtered.Description)) if rc_data_filtered.Description[i] in embeddings.index]
     rc_data_filtered = rc_data_filtered.iloc[embedding_genes_indexes, :]
-
-    for i_col in range(3, len(rc_data_filtered.columns)):
+    
+    embedding_list = []
+    for i_col in range(2, len(rc_data_filtered.columns)):
         genes = rc_data_filtered.Description
-        gene_embedding_vector = embeddings.loc[genes,:].to_numpy()
-        rc_vector = rc_data_filtered.iloc[:, i_col].to_numpy()
+        gene_embedding_vector = embeddings.loc[genes,:].to_numpy().astype(np.float)
+        rc_vector = rc_data_filtered.iloc[:, i_col].to_numpy().astype(np.float)
         rc_vector_len = len(rc_vector)
         rc_vector_reshape = rc_vector.reshape((1, rc_vector_len))
-
-        print(type(rc_vector_reshape))
-        print(type(gene_embedding_vector))
-        print(rc_vector_reshape.shape)
-        print(gene_embedding_vector.shape)
         res = np.dot(rc_vector_reshape, gene_embedding_vector)
-        print(res.shape)
-
-        exit(0)
+        embedding_list.append(res.tolist())
+    embedding_array = np.array(embedding_list).reshape((len(rc_data_filtered.columns)-2, 200))
 
     rc_data_filtered.drop(columns=['Description'], axis=1, inplace=True)
 
@@ -62,8 +57,7 @@ def transform_data(rc_data_file, snps_labels_file, embeddings):
     snps_data_filtered = snps_data_filtered.iloc[:, random_indexes]
     for snp in snps_data_filtered.columns:
         snps_data_filtered[snp] = snps_data_filtered[snp].astype(int)
-
-    return rc_data_trans, snps_data_filtered
+    return embedding_array, snps_data_filtered
 
 
 def get_embeddings(embedding_file):
