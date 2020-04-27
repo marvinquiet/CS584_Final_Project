@@ -10,45 +10,6 @@ from datetime import datetime
 import data
 import mlp_emb
 
-def transform_data(rc_data_file, snps_labels_file):
-    ''' transform the data into proper ML data
-    '''
-
-    snps_data = pd.read_csv(snps_labels_file, header=0, sep=',')
-    rc_data = pd.read_csv(rc_data_file, header=0, sep='\t')
-
-    snps_data.drop(['PHENOTYPE', 'IID'], axis=1, inplace=True)
-    snps_samples = list(snps_data.loc[:, 'NEW_SAMPID'])
-
-    # extract read counts according to snps samples
-    rc_samples = list(rc_data.columns)[2:]
-    rc_samples_extracted = []
-    for rc_sample in rc_samples:
-        if '-'.join(rc_sample.split('-')[:2]) in snps_samples:
-            rc_samples_extracted.append(rc_sample)
-    rc_samples_index = [list(rc_data.columns).index(_) for _ in rc_samples_extracted]
-    rc_samples_index = [0] + rc_samples_index # add gene name into the index
-    rc_data_filtered = rc_data.iloc[:, rc_samples_index] # select certain samples
-    rc_data_trans = rc_data_filtered.set_index('Name').T # change into normal dataset
-    rc_data_trans = rc_data_trans.loc[:, (rc_data_trans != 0).any(axis=0)] # remove 0s
-    rc_data_trans = rc_data_trans.loc[:, rc_data_trans.std(axis=0) > 0.5] # remove std < 0.1
-
-    print('--- finish transforming data')
-
-    rc_data_rownames = ['-'.join(_.split('-')[:2]) for _ in list(rc_data_trans.index)]
-    snps_data = snps_data.set_index('NEW_SAMPID')
-    snps_data_filtered = snps_data.loc[rc_data_rownames, :]
-
-    # random select 100 SNPs
-    random.seed(2020)
-    random_indexes = random.sample(range(snps_data_filtered.shape[1]), 100)
-    snps_data_filtered = snps_data_filtered.iloc[:, random_indexes]
-    for snp in snps_data_filtered.columns:
-        snps_data_filtered[snp] = snps_data_filtered[snp].astype(int)
-
-    print("--- finish SNP data")
-    return rc_data_trans, snps_data_filtered
-
 def evaluation_metrics(snp, y_true, y_pred_prob, y_pred):
     # print("\n\n ==== Evaluation Metrics for {} ==== ".format(snp))
     from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
@@ -85,8 +46,6 @@ def model(rc_dat, snps_label):
         X_scaled_std = X_train.std(axis=0)
         X_train_scaled = (X_train-X_scaled_mean)/X_scaled_std
         X_test_scaled = (X_test-X_scaled_mean)/X_scaled_std
-        print("=== Data Normalization finish....")
-
         # print(X_scaled_std)
         # print(X_test_scaled)
         # print("Any NAs in train?", sum(np.isnan(X_train_scaled)))
@@ -102,7 +61,7 @@ def model(rc_dat, snps_label):
                 snp_result[snp]['LR'] = []
                 snp_result[snp]['RF'] = []
                 snp_result[snp]['SVM'] = []
-                # snp_result[snp]['MLP'] = []
+                snp_result[snp]['MLP'] = []
                 # snp_result[snp]['CNN'] = []
 
             # LR model result
@@ -117,11 +76,8 @@ def model(rc_dat, snps_label):
             y_svm_pred = svm(X_train_scaled, y_snp_train, X_test_scaled)
             snp_result[snp]['SVM'].append(evaluation_metrics(snp, y_snp_test, None, y_svm_pred))
 
-            # y_mlp_pred_prob, y_mlp_pred = mlp(snp, X_train_scaled, y_snp_train, X_test_scaled)
-            # snp_result[snp]['MLP'].append(evaluation_metrics(snp, y_snp_test, y_mlp_pred_prob, y_mlp_pred))
-
-            print(snp_result)
-            print(datetime.now().strftime("%H:%M:%S"))
+            y_mlp_pred_prob, y_mlp_pred = mlp(snp, X_train_scaled, y_snp_train, X_test_scaled)
+            snp_result[snp]['MLP'].append(evaluation_metrics(snp, y_snp_test, y_mlp_pred_prob, y_mlp_pred))
         print(snp_result)
 
 def svm(X_train, y_train, X_test):
