@@ -119,10 +119,8 @@ def model(rc_dat, snps_label):
 
             # y_mlp_pred_prob, y_mlp_pred = mlp(snp, X_train_scaled, y_snp_train, X_test_scaled)
             # snp_result[snp]['MLP'].append(evaluation_metrics(snp, y_snp_test, y_mlp_pred_prob, y_mlp_pred))
-
-            print(snp_result)
-            print(datetime.now().strftime("%H:%M:%S"))
         print(snp_result)
+    return snp_result
 
 def svm(X_train, y_train, X_test):
     from sklearn.svm import SVC
